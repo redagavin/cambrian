@@ -12,7 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-
+import os
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -111,7 +111,7 @@ class CambrianPhi3ForCausalLM(Phi3ForCausalLM, CambrianMetaForCausalLM):
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        if IS_XLA_AVAILABLE:
+        if IS_XLA_AVAILABLE or os.getenv('IF_TRAIN', False):
             output = super().forward(
                 input_ids=input_ids,
                 attention_mask=attention_mask,

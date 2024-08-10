@@ -49,7 +49,7 @@ from cambrian import conversation as conversation_lib
 
 from cambrian.utils import IS_XLA_AVAILABLE
 from cambrian.mm_utils import tokenizer_image_token, tokenizer_image_token_llama3
-from swanlab.integration.huggingface import SwanLabCallback
+from cambrian.train.wandb_nan_alert_callback import NanInfAlertWandbCallback
 from cambrian.model import CambrianLlamaForCausalLM, CambrianMistralForCausalLM
 from cambrian.model.language_model.cambrian_phi3 import CambrianPhi3ForCausalLM
 from PIL import Image
@@ -1532,8 +1532,10 @@ def train(attn_implementation=None):
             model = CambrianPhi3ForCausalLM.from_pretrained(
                     model_name,
                     cache_dir=training_args.cache_dir,
+                    attn_implementation=attn_implementation, # Phi-3 does not use flash attn 2 automatically, we have to specify this
                     do_sample=True,
                     torch_dtype=(torch.bfloat16 if training_args.bf16 else None),
+                    revision="653ee820c4f2ee66427e997b4a8ca3e9323e7d46", # use the first version of phi-3
                     **bnb_model_from_pretrained_args
             )
             cambrian.model.language_model.phi3.modeling_phi3.Phi3RMSNorm.forward = forward
@@ -1605,6 +1607,15 @@ def train(attn_implementation=None):
             cache_dir=training_args.cache_dir,
             model_max_length=training_args.model_max_length,
             padding_side="right"
+        )
+    elif 'Phi' in model_args.model_name_or_path:
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=training_args.cache_dir,
+            model_max_length=training_args.model_max_length,
+            padding_side="right",
+            revision="653ee820c4f2ee66427e997b4a8ca3e9323e7d46", # use the first version of phi-3
+            use_fast=False,
         )
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -1745,14 +1756,20 @@ def train(attn_implementation=None):
     # print(training_args)
 
     log_rank0("Configuring trainer...")
-    callback = None
-    if "swanlab" in training_args.report_to:
-        callback = [SwanLabCallback(project="Cambrian",experiment_name=training_args.run_name)]
-        training_args.report_to.remove("swanlab")
+    
+    callbacks = []
+
+    if "wandb" in training_args.report_to:
+        wandb_nan_callback = NanInfAlertWandbCallback(metrics=["loss"])
+        callbacks.append(wandb_nan_callback)
+        # rm wandb from training_args.report_to so it doesn't get passed to the Trainer
+        training_args.report_to.remove("wandb")
+        assert "wandb" not in training_args.report_to, training_args.report_to
+
     trainer = CambrianTrainer(model=model,
                     tokenizer=tokenizer,
                     args=training_args,
-                    callbacks=callback,
+                    callbacks=callbacks,
                     **data_module)
 
     # print("\n\n\nafter \n")

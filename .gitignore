@@ -295,6 +295,7 @@ $RECYCLE.BIN/
 slurm_tmp/
 wandb/
 *.out
+*.err
 checkpoints/
 .deepspeed_env
 test.sh
