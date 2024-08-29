@@ -109,6 +109,8 @@ class ModelArguments:
     num_of_vision_sampler_layers: Optional[int] = field(default=10)
     start_of_vision_sampler_layers: Optional[int] = field(default=16)
     stride_of_vision_sampler_layers: Optional[int] = field(default=1)
+    use_token_merging: bool = field(default=False)
+    token_merging_r: Optional[int] = field(default=None)
 
 
 @dataclass
@@ -1660,6 +1662,9 @@ def train(attn_implementation=None):
         model_args.vision_tower_aux_list = json.loads(model_args.vision_tower_aux_list)
         model_args.vision_tower_aux_token_len_list = json.loads(model_args.vision_tower_aux_token_len_list)
         model_args.query_num_list = json.loads(model_args.query_num_list)
+        if model_args.use_token_merging:
+            if model_args.token_merging_r is None:
+                raise ValueError("if you use token merging, you must set token_merging_r")
         model.get_model().initialize_vision_modules(
             model_args=model_args,
             fsdp=training_args.fsdp
@@ -1746,6 +1751,7 @@ def train(attn_implementation=None):
                                               data_args=data_args,
                                               data=future.result())
 
+    # This ensure that the model has consistent dtype beforing init trainer
     # if training_args.bf16:
     #     model = model.to(dtype=torch.bfloat16)
     # print("\n\n\nbefore \n")
