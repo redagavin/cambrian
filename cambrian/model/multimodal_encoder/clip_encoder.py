@@ -45,7 +45,7 @@ class ClipVisionTower(BaseVisionTower):
         if self.is_loaded:
             logger.debug(f"{self.vision_tower_name} is already loaded, `load_model` called again, skipping.")
             return
-
+        print(self.vision_tower_name)
         self.image_processor = CLIPImageProcessor.from_pretrained(self.vision_tower_name)
         self.vision_tower = CLIPVisionModel.from_pretrained(self.vision_tower_name, device_map=device_map)
         # token merging patch here

@@ -95,7 +95,7 @@ def build_vision_tower_aux_list(vision_tower_cfg, **kwargs):
             vision_tower=MawsVisionTower(vision_tower_aux_name, args=config, **kwargs)
 
         # CLIP-based Vision Towers
-        elif "openai/clip" in vision_tower_aux_name.lower():
+        elif "openai/clip" in vision_tower_aux_name.lower() or "clip_vit" in vision_tower_aux_name.lower():
             logger.info(f"Loading **OpenAI CLIP** Vision Tower: {vision_tower_aux_name}")
             vision_tower=ClipVisionTower(vision_tower_aux_name, args=config, **kwargs)
         elif "apple/dfn" in vision_tower_aux_name.lower():
@@ -146,6 +146,6 @@ def build_vision_tower_aux_list(vision_tower_cfg, **kwargs):
         else:
             raise ValueError(f'Unknown vision tower: {vision_tower_aux_name}')
         return vision_tower
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(1) as executor:
         vision_tower_aux_list = executor.map(worker, vision_tower_aux_name_list,vision_tower_aux_token_len_list)
     return list(vision_tower_aux_list)

@@ -1730,6 +1730,8 @@ def train(attn_implementation=None):
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.config.vision_tower_aux_token_len_list = data_args.vision_tower_aux_token_len_list = model_args.vision_tower_aux_token_len_list
         model.config.image_token_len = data_args.image_token_len
+        model.config.use_token_merging = model_args.use_token_merging
+        model.config.token_merging_r = model_args.token_merging_r
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
 
     if training_args.bits in [4, 8]:
